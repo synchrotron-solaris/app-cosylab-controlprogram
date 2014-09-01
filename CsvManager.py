@@ -580,7 +580,7 @@ class CsvDevice():
         if not os.path.isfile(file_path):
             return -2
         try:
-            self.custom_gui = subprocess.Popen("python " + self.gui_dir + "/" + self.custom_gui_script + ".py " + self.device_name, shell=True)
+            self.custom_gui = subprocess.Popen("python2.7 " + self.gui_dir + "/" + self.custom_gui_script + ".py " + self.device_name, shell=True)
         except OSError:
             return -3
         return 2
