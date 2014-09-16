@@ -4,9 +4,9 @@ CsvManager also updates the state of every device from the CSV file."""
 
 import csv
 import PyTango
-from TaurusDevicePanel import TaurusDevicePanel
+from cosywidgets.panel import TaurusDevicePanel
 from PyQt4 import Qt, QtGui, QtCore
-import subprocess, os, threading, time, copy, sys
+import subprocess, os, threading, time, copy, sys, re
 
 __author__ = "Cosylab"
 
@@ -225,7 +225,22 @@ class CsvManager():
                     csvDevice = MockCsvDevice(row[indexTangoDeviceName], row[indexAggregate])
                     if csvDevice.has_agg:
                         if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                            self.csvAggSystems[csvDevice.agg_system_name] = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                            newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                            self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
+
+                            agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
+                            if agg_num:
+                                agg_num = int(agg_num.group())
+                                prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
+                                next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
+
+                                if prev_agg_name in self.csvAggSystems.keys():
+                                    self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
+                                    newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                                if next_agg_name in self.csvAggSystems.keys():
+                                    self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
+                                    newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+
                         self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
                     continue
 
@@ -246,7 +261,24 @@ class CsvManager():
                 #------------------------------------------------
                 if csvDevice.has_agg:
                     if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                        self.csvAggSystems[csvDevice.agg_system_name] = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                        newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                        self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
+
+
+                        agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
+                        if agg_num:
+                            agg_num = int(agg_num.group())
+                            prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
+                            next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
+
+                            if prev_agg_name in self.csvAggSystems.keys():
+                                self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
+                                newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                            if next_agg_name in self.csvAggSystems.keys():
+                                self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
+                                newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+
+
                     self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
 
 
@@ -580,7 +612,7 @@ class CsvDevice():
         if not os.path.isfile(file_path):
             return -2
         try:
-            self.custom_gui = subprocess.Popen("python2.7 " + self.gui_dir + "/" + self.custom_gui_script + ".py " + self.device_name, shell=True)
+            self.custom_gui = subprocess.Popen("python " + self.gui_dir + "/" + self.custom_gui_script + ".py " + self.device_name, shell=True)
         except OSError:
             return -3
         return 2
@@ -714,6 +746,9 @@ class CsvAggSystem():
     gui_widget = None
     gui_dir = None
 
+    nextAgg = None
+    prevAgg = None
+
     def __init__(self, agg_system_name, gui_dir):
         self.agg_system_name = agg_system_name
         self.executable_name = self.agg_system_name.rstrip('0123456789 ')
@@ -756,16 +791,34 @@ class CsvAggSystem():
         for csvDevice in self.csvDevices:
             line.append("--" + csvDevice.agg_instance_name)
             line.append(csvDevice.getDeviceName())
+            if csvDevice.getDescription():
+                line.append(csvDevice.getDescription())
+            else:
+                line.append("No description available")
 
         try:
             command_module = __import__(self.executable_name)
             self.gui_widget = command_module.getGuiWidget(line)
             self.gui_widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
             self.gui_widget.setResult(2)
+
+            if self.nextAgg and hasattr(self.gui_widget, "addNext"):
+                self.gui_widget.addNext(self.runNextGui)
+            if self.prevAgg and hasattr(self.gui_widget, "addPrev"):
+                self.gui_widget.addPrev(self.runPrevGui)
+
             self.gui_widget.show()
             return 1
         except ImportError:
             return -2
+
+    def runNextGui(self):
+        self.gui_widget.close()
+        self.nextAgg.runGUI()
+
+    def runPrevGui(self):
+        self.gui_widget.close()
+        self.prevAgg.runGUI()
 
     def isGuiRunning(self):
         """Method returns True, if a GUI of this aggregate is running, False otherwise"""
