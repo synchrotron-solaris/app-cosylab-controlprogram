@@ -1,0 +1,12 @@
+*.pyc
+.idea/
+.DS_Store
+
+*.creator
+*.creator.user
+*.includes
+*.files
+
+bin/
+obj/
+build/
