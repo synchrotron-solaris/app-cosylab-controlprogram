@@ -22,7 +22,7 @@ parser.add_argument('--CSV', help='Path to CSV file', required=True)
 parser.add_argument('--GUI', help='Path to GUI directory', required=True)
 parser.add_argument('--TITLE', help='Title of the main window', required=False)
 args = parser.parse_args()
-sys.argv = []
+#sys.argv = []
 
 
 app = TaurusApplication([])
