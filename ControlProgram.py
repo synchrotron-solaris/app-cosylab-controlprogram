@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--CSV', help='Path to CSV file', required=True)
 parser.add_argument('--GUI', help='Path to GUI directory', required=True)
 parser.add_argument('--TITLE', help='Title of the main window', required=False)
+parser.add_argument('-v', dest="LOG", help='Verbose - log files for custom GUIs to user home folder.', action="store_true")
 args = parser.parse_args()
 #sys.argv = []
 
@@ -30,7 +31,7 @@ app.setStyle(QtGui.QStyleFactory.create("Cleanlooks"))
 
 mainWindow = MainWindow.MainWindow()
 ui = MainWindow.Ui_MainWindow()
-csvManager = CsvManager(args.CSV, args.GUI, ui)
+csvManager = CsvManager(args.CSV, args.GUI, ui, args.LOG)
 ui.setupUi(mainWindow,csvManager)
 if args.TITLE:
     mainWindow.setWindowTitle(args.TITLE)
