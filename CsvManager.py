@@ -615,7 +615,7 @@ class CsvDevice():
         if not os.path.isfile(file_path):
             return -2
         try:
-            redirect_output = (" &> ~/%s.log" % self.custom_gui_script) if self._create_log_file else ""
+            redirect_output = (" &> ~/.ControlProgram/%s.log" % self.custom_gui_script) if self._create_log_file else ""
             self.custom_gui = subprocess.Popen("python2.7 %s %s %s" % (file_path, self.device_name, redirect_output), shell=True)
         except OSError:
             return -3

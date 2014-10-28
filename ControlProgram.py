@@ -3,6 +3,7 @@ Application takes 3 arguments:
 --CSV = Path to CSV file
 --GUI = Path to GUI directory
 --TITLE = Title of the main window"""
+import os
 
 import sys
 import MainWindow
@@ -25,6 +26,11 @@ parser.add_argument('-v', dest="LOG", help='Verbose - log files for custom GUIs 
 args = parser.parse_args()
 #sys.argv = []
 
+# Check if the default directory for logs exists.
+if args.LOG:
+    log_directory = "~/.ControlProgram"
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
 
 app = TaurusApplication([])
 app.setStyle(QtGui.QStyleFactory.create("Cleanlooks"))
