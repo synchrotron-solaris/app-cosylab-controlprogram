@@ -27,10 +27,14 @@ args = parser.parse_args()
 #sys.argv = []
 
 # Check if the default directory for logs exists.
-if args.LOG:
-    log_directory = "~/.ControlProgram"
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
+try:
+    if args.LOG:
+        log_directory = os.path.expanduser("~/.ControlProgram")
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+except Exception, e:
+    args.LOG = False
+    print "Verbose mode disabled. Error while trying to create log dir:\n%s" % str(e)
 
 app = TaurusApplication([])
 app.setStyle(QtGui.QStyleFactory.create("Cleanlooks"))
