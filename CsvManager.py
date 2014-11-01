@@ -11,7 +11,7 @@ import subprocess, os, threading, time, copy, sys, re
 __author__ = "Cosylab"
 
 
-DEFAULT_POLLING_PERIOD = 1000
+DEFAULT_POLLING_PERIOD = 2000
 STATE_CHECK_PERIOD_S = 10
 STATE_CHECK_DIFF_S = 10
 
@@ -101,10 +101,9 @@ class CsvManager():
     stateThreadAlive = None
     stateThreadAliveMutex = None
 
-    def __init__(self, filePath, guiDir, ui, create_log_file=False):
+    def __init__(self, filePath, guiDir, ui):
         self.gui_dir_path = guiDir
         self.csv_file_path = filePath
-        self._create_log_file = create_log_file
         self.initialize(ui)
 
 
@@ -251,8 +250,7 @@ class CsvManager():
                                       row[indexInstanceName], row[indexDSClassName],
                                       row[indexSubsystem], row[indexSection], row[indexAggregate],
                                       row[indexCustomGui], self.gui_dir_path, row[indexDeviceAlias],
-                                      row[indexDescription],
-                                      self._create_log_file)
+                                      row[indexDescription])
                 self.csvDevices[row[indexTangoDeviceName]] = csvDevice
 
                 #Create csv AggSystem data model
@@ -403,7 +401,7 @@ class CsvDevice():
     mainUi = None
 
 
-    def __init__(self, mainUi, order_index, device_name, server_name, instance_name, class_name, subsystem_name, section_name, agg_name, custom_gui, gui_dir, device_alias, description, create_log_file=False):
+    def __init__(self, mainUi, order_index, device_name, server_name, instance_name, class_name, subsystem_name, section_name, agg_name, custom_gui, gui_dir, device_alias, description):
         self.order_index = order_index
         self.device_name = device_name
         self.server_name = server_name
@@ -413,7 +411,6 @@ class CsvDevice():
         self.section_name = section_name
         self.description = description
         self.mainUi = mainUi
-        self._create_log_file = create_log_file
 
         split = self.device_name.split("/")
         self.domain_name = split[0]
@@ -615,8 +612,7 @@ class CsvDevice():
         if not os.path.isfile(file_path):
             return -2
         try:
-            redirect_output = (" &> ~/.ControlProgram/%s.log" % self.custom_gui_script) if self._create_log_file else ""
-            self.custom_gui = subprocess.Popen("python2.7 %s %s %s" % (file_path, self.device_name, redirect_output), shell=True)
+            self.custom_gui = subprocess.Popen("python2.7 " + self.gui_dir + "/" + self.custom_gui_script + ".py " + self.device_name, shell=True)
         except OSError:
             return -3
         return 2
@@ -778,6 +774,7 @@ class CsvAggSystem():
         Returns success code:
         0  - GUI already running
         1  - success
+        2 - external gui, no control
         -1 - GUI script not found
         -2 - Error whilst running script"""
         if self.isGuiRunning():
@@ -803,6 +800,8 @@ class CsvAggSystem():
         try:
             command_module = __import__(self.executable_name)
             self.gui_widget = command_module.getGuiWidget(line)
+            if self.gui_widget == None:
+                return 2
             self.gui_widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
             self.gui_widget.setResult(2)
 
