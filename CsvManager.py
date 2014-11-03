@@ -778,6 +778,7 @@ class CsvAggSystem():
         Returns success code:
         0  - GUI already running
         1  - success
+        2  - External GUI, no control
         -1 - GUI script not found
         -2 - Error whilst running script"""
         if self.isGuiRunning():
@@ -803,6 +804,8 @@ class CsvAggSystem():
         try:
             command_module = __import__(self.executable_name)
             self.gui_widget = command_module.getGuiWidget(line)
+            if self.gui_widget is None:
+                return 2
             self.gui_widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
             self.gui_widget.setResult(2)
 

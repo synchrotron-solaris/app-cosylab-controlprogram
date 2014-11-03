@@ -33,6 +33,14 @@ class Ui_Dialog(object):
         :param Dialog: AttributeWidget Dialog
         :param csvDevices: list of CsvDevice instances, used in this view
         :param attributeNames: list of attribute names, used in this view"""
+        csvDeviceMap = {}
+        for csvDevice in csvDevices:
+            if not csvDeviceMap.has_key(csvDevice.getClassName()):
+                csvDeviceMap[csvDevice.getClassName()] = [csvDevice]
+            else:
+                csvDeviceMap[csvDevice.getClassName()].append(csvDevice)
+
+
 
         self.dialog = Dialog
         self.panels = []
@@ -51,72 +59,106 @@ class Ui_Dialog(object):
         self.scrollAreaWidgetContents = QtGui.QWidget()
         self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 530, 397))
         self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
-        self.formLayout = QtGui.QFormLayout(self.scrollAreaWidgetContents)
-        self.formLayout.setObjectName(_fromUtf8("formLayout"))
 
         boldFont = QtGui.QFont()
         boldFont.setBold(True)
         boldFont.setWeight(75)
 
-        counter = 0
-        for csvDevice in csvDevices:
-            gridLayout = QtGui.QGridLayout()
 
-            attCounter = 1
-            for attributeName in attributeNames:
-                attributeInfo = csvDevice.getAttributeInfo(attributeName)
-                if attributeInfo:
-                    attributeNameLabel = QtGui.QLabel(Dialog)
-                    attributeNameLabel.setText(_translate("Dialog", attributeName + ":", None))
-                    gridLayout.addWidget(attributeNameLabel, attCounter, 0, 1, 1)
+        self.devicesLayout = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
 
-                    if attributeInfo.data_format == PyTango.AttrDataFormat.SCALAR:
-                        attributeValue = TaurusLabel(Dialog)
-                        attributeValue.setModel(csvDevice.getDeviceName() + "/" + attributeName)
-                    elif attributeInfo.data_format == PyTango.AttrDataFormat.SPECTRUM:
-                        widget = Extra.TaurusCurveDialog()
-                        widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-                        widget.setModel(csvDevice.getDeviceName() + "/" + attributeName)
-                        widget.setWindowTitle(csvDevice.getDeviceName() + "/" + attributeName)
-                        attributeValue = ShowPanelButton(QtGui.QIcon(':/designer/qwtplot.png'), "Show")
-                        attributeValue.setWidget(widget)
-                    else:
-                        widget = Extra.TaurusImageDialog()
-                        widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
-                        widget.setModel(csvDevice.getDeviceName() + "/" + attributeName)
-                        widget.setWindowTitle(csvDevice.getDeviceName() + "/" + attributeName)
-                        attributeValue = ShowPanelButton(QtGui.QIcon(':/mimetypes/image-x-generic.svg'), "Show")
-                        attributeValue.setWidget(widget)
+
+        for className in csvDeviceMap.keys():
+            #print className
+
+            classWidget = QtGui.QWidget()
+            classLayout = QtGui.QVBoxLayout(classWidget)
+            classHeader = ShowHideButton(classWidget, className)
+            classHeader.setStyleSheet("font-weight: bold;")
 
 
 
+            devCounter = 0
+            for csvDevice in csvDeviceMap[className]:
 
-                    gridLayout.addWidget(attributeValue, attCounter, 1, 1, 1)
-                    attCounter += 1
+                deviceHeader = QtGui.QHBoxLayout()
+                attributeLayout = QtGui.QGridLayout()
 
-            if attCounter > 1:
-                deviceNameLabel = QtGui.QLabel(Dialog)
-                deviceNameLabel.setText(_translate("Dialog", csvDevice.getDeviceName(), None))
-                deviceNameLabel.setFont(boldFont)
-                gridLayout.addWidget(deviceNameLabel, 0, 0, 1, 1)
-                stateLed = TaurusLed(Dialog)
-                stateLed.setModel(csvDevice.getDeviceName() + "/state")
-                gridLayout.addWidget(stateLed, 0, 1, 1, 1)
-                self.formLayout.setLayout(counter, QtGui.QFormLayout.SpanningRole, gridLayout)
-                line = QtGui.QFrame(Dialog)
-                line.setMinimumSize(QtCore.QSize(0, 10))
-                line.setFrameShape(QtGui.QFrame.HLine)
-                line.setFrameShadow(QtGui.QFrame.Sunken)
-                gridLayout.addWidget(line, attCounter, 0, 1, 2)
-                counter += 1
 
-        if counter == 0:
-            gridLayout = QtGui.QGridLayout()
-            noMatch = QtGui.QLabel(Dialog)
-            noMatch.setText(_translate("Dialog", "None of the selected devices have any of the specified attributes!", None))
-            gridLayout.addWidget(noMatch, 0, 0, 1, 1)
-            self.formLayout.setLayout(counter, QtGui.QFormLayout.SpanningRole, gridLayout)
-            Dialog.resize(500,300)
+
+                attCounter = 0
+                for attributeName in attributeNames:
+                    attributeInfo = csvDevice.getAttributeInfo(attributeName)
+                    if attributeInfo:
+                        attributeNameLabel = QtGui.QLabel(Dialog)
+                        attributeNameLabel.setText(_translate("Dialog", attributeName + ":", None))
+                        attributeLayout.addWidget(attributeNameLabel, attCounter, 0, 1, 1)
+
+                        if attributeInfo.data_format == PyTango.AttrDataFormat.SCALAR:
+                            attributeValue = TaurusLabel(Dialog)
+                            attributeValue.setModel(csvDevice.getDeviceName() + "/" + attributeName)
+                            attributeLayout.addWidget(attributeValue, attCounter, 1, 1, 1)
+
+                            units = QtGui.QLabel(Dialog)
+                            units.setText("N/A")
+                            try:
+                                units.setText(PyTango.AttributeProxy(csvDevice.getDeviceName() + "/" + attributeName).get_config().unit)
+                            except PyTango.DevFailed:
+                                pass
+                            units.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
+                            attributeLayout.addWidget(units, attCounter, 2, 1, 1)
+
+                        elif attributeInfo.data_format == PyTango.AttrDataFormat.SPECTRUM:
+                            widget = Extra.TaurusCurveDialog()
+                            widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+                            widget.setModel(csvDevice.getDeviceName() + "/" + attributeName)
+                            widget.setWindowTitle(csvDevice.getDeviceName() + "/" + attributeName)
+                            attributeValue = ShowPanelButton(QtGui.QIcon(':/designer/qwtplot.png'), "Show")
+                            attributeValue.setWidget(widget)
+                            attributeLayout.addWidget(attributeValue, attCounter, 1, 1, 1)
+                        else:
+                            widget = Extra.TaurusImageDialog()
+                            widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMaximizeButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+                            widget.setModel(csvDevice.getDeviceName() + "/" + attributeName)
+                            widget.setWindowTitle(csvDevice.getDeviceName() + "/" + attributeName)
+                            attributeValue = ShowPanelButton(QtGui.QIcon(':/mimetypes/image-x-generic.svg'), "Show")
+                            attributeValue.setWidget(widget)
+                            attributeLayout.addWidget(attributeValue, attCounter, 1, 1, 1)
+
+                        attCounter += 1
+
+                if attCounter > 0:
+                    deviceNameLabel = QtGui.QLabel(Dialog)
+                    deviceNameLabel.setText(_translate("Dialog", csvDevice.getDeviceName(), None))
+                    deviceNameLabel.setFont(boldFont)
+                    deviceHeader.addWidget(deviceNameLabel)
+                    stateLed = TaurusLed(Dialog)
+                    stateLed.setModel(csvDevice.getDeviceName() + "/state")
+                    deviceHeader.addWidget(stateLed)
+
+                    line = QtGui.QFrame(Dialog)
+                    line.setMinimumSize(QtCore.QSize(0, 10))
+                    line.setFrameShape(QtGui.QFrame.HLine)
+                    line.setFrameShadow(QtGui.QFrame.Sunken)
+                    attributeLayout.addWidget(line, attCounter, 0, 1, 3)
+
+                    classLayout.addLayout(deviceHeader)
+                    classLayout.addLayout(attributeLayout)
+                    devCounter += 1
+
+            if devCounter > 0:
+                self.devicesLayout.addWidget(classHeader)
+                self.devicesLayout.addWidget(classWidget)
+
+        self.devicesLayout.addStretch()
+
+        #if counter == 0:
+        #    gridLayout = QtGui.QGridLayout()
+        #    noMatch = QtGui.QLabel(Dialog)
+        #    noMatch.setText(_translate("Dialog", "None of the selected devices have any of the specified attributes!", None))
+        #    gridLayout.addWidget(noMatch, 0, 0, 1, 1)
+        #    self.formLayout.setLayout(counter, QtGui.QFormLayout.SpanningRole, gridLayout)
+        #    Dialog.resize(500,300)
 
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
@@ -132,6 +174,31 @@ class Ui_Dialog(object):
         """Forwards the result of the dialog.
         Used to check if the dialog is opened/closed"""
         return self.dialog.result()
+
+
+
+
+class ShowHideButton(QtGui.QPushButton):
+
+    toHide = None
+    tempText = None
+
+    def __init__(self, toHide, text):
+        self.toHide = toHide
+        self.tempText = text
+        super(ShowHideButton, self).__init__()
+        self.setText(text)
+        self.clicked.connect(self.showHide)
+
+
+    def showHide(self):
+        if self.toHide.isHidden():
+            self.toHide.show()
+            self.setText(self.tempText)
+        else:
+            self.toHide.hide()
+            self.setText(u'\u25BC' + "  " + self.tempText + "  " + u'\u25BC')
+
 
 
 class ShowPanelButton(QtGui.QPushButton):

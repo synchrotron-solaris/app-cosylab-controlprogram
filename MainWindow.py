@@ -241,7 +241,8 @@ class Ui_MainWindow(object):
 
     def refreshRow(self):
         if self.initFinished:
-            self.taurusTreeWidget.model().layoutChanged.emit()
+            if self.taurusTreeWidget.model():
+                self.taurusTreeWidget.model().layoutChanged.emit()
 
     def openGui(self):
         """Method for opening a GUI.
