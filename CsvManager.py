@@ -221,88 +221,48 @@ class CsvManager():
                     print "Skipped row " + str(rowCounter) + " because one of the column is empty (section name, subsystem name)"
                     continue
 
-                if row[indexTangoDeviceName] in self.csvDevices.keys():
-                    print "Skipped row " + str(rowCounter) + " because the device with the same name has already been processed"
-                    csvDevice = MockCsvDevice(row[indexTangoDeviceName], row[indexAggregate])
-                    if csvDevice.has_agg:
-                        if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                            newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
-                            self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
-
-                            agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
-                            if agg_num:
-                                agg_num = int(agg_num.group())
-                                prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
-                                next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
-
-                                if prev_agg_name in self.csvAggSystems.keys():
-                                    self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
-                                    newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
-                                if next_agg_name in self.csvAggSystems.keys():
-                                    self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
-                                    newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
-
-                        self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
-                    continue
-
-                print "Processing device " + row[indexTangoDeviceName] + " ************"
-
-                csvDevice = CsvDevice(ui, rowCounter, row[indexTangoDeviceName], row[indexExecutable],
-                                      row[indexInstanceName], row[indexDSClassName],
-                                      row[indexSubsystem], row[indexSection], row[indexAggregate],
-                                      row[indexCustomGui], self.gui_dir_path, row[indexDeviceAlias],
-                                      row[indexDescription],
-                                      self._create_log_file)
-                self.csvDevices[row[indexTangoDeviceName]] = csvDevice
-
-                #Create csv AggSystem data model
-                #
-                #AggSystem
-                #   |
-                #   -> Device
-                #------------------------------------------------
-                if csvDevice.has_agg:
-                    if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                        newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
-                        self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
-
-
-                        agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
-                        if agg_num:
-                            agg_num = int(agg_num.group())
-                            prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
-                            next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
-
-                            if prev_agg_name in self.csvAggSystems.keys():
-                                self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
-                                newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
-                            if next_agg_name in self.csvAggSystems.keys():
-                                self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
-                                newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
-
-
-                    self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
-
-
-                #Create csv Device data model
-                #
-                #Section
-                #   |
-                #   -> Subsystem
-                #       |
-                #       -> Device
-                #------------------------------------------------
-                if not csvDevice.getSectionName() in self.csvSections.keys():
-                    self.csvSections[csvDevice.getSectionName()] = CsvSection(csvDevice.getSectionName())
-                    self.csvSectionNames.append(csvDevice.getSectionName())
-                self.csvSections[csvDevice.getSectionName()].appendCsvDevice(csvDevice)
 
 
 
-                if not csvDevice.getSubsystemName() in self.csvSubsystemNames:
-                    self.csvSubsystemNames.append(csvDevice.getSubsystemName())
-                if not csvDevice.getClassName() in self.csvClassNames:
-                    self.csvClassNames.append(csvDevice.getClassName())
+                multiAgg = row[indexAggregate].split("|")
+                if len(multiAgg) > 1:
+
+                    if row[indexTangoDeviceName] in self.csvDevices.keys():
+                        # PROCESS MOCK DEVICE
+                        self.processMockDevice(row[indexTangoDeviceName], multiAgg[0])
+                        continue
+
+                    else:
+                        # PROCESS DEVICE
+                        print "Processing device " + row[indexTangoDeviceName] + " ************"
+                        self.processDevice(ui, rowCounter, row[indexTangoDeviceName], row[indexExecutable],
+                                              row[indexInstanceName], row[indexDSClassName],
+                                              row[indexSubsystem], row[indexSection], multiAgg[0],
+                                              row[indexCustomGui], self.gui_dir_path, row[indexDeviceAlias],
+                                              row[indexDescription],
+                                              self._create_log_file)
+
+                    for i in range(1,len(multiAgg)):
+                        # PROCESS MOCK DEVICE
+                        self.processMockDevice(row[indexTangoDeviceName], multiAgg[i])
+
+
+
+
+
+                else:
+                    if row[indexTangoDeviceName] in self.csvDevices.keys():
+                        # PROCESS MOCK DEVICE
+                        self.processMockDevice(row[indexTangoDeviceName], row[indexAggregate])
+                    else:
+                        # PROCESS DEVICE
+                        print "Processing device " + row[indexTangoDeviceName] + " ************"
+                        self.processDevice(ui, rowCounter, row[indexTangoDeviceName], row[indexExecutable],
+                                              row[indexInstanceName], row[indexDSClassName],
+                                              row[indexSubsystem], row[indexSection], row[indexAggregate],
+                                              row[indexCustomGui], self.gui_dir_path, row[indexDeviceAlias],
+                                              row[indexDescription],
+                                              self._create_log_file)
 
 
 
@@ -310,6 +270,79 @@ class CsvManager():
         self.stateThreadAlive = True
         self.stateThread = threading.Thread(target=self.StateCheckerRun)
         self.stateThread.start()
+
+
+    def processDevice(self, mainUi, order_index, device_name, server_name, instance_name, class_name, subsystem_name, section_name, agg_name, custom_gui, gui_dir, device_alias, description, create_log_file):
+        csvDevice = CsvDevice(mainUi, order_index, device_name, server_name, instance_name, class_name, subsystem_name, section_name, agg_name, custom_gui, gui_dir, device_alias, description, create_log_file)
+        self.csvDevices[device_name] = csvDevice
+
+        #Create csv AggSystem data model
+        #
+        #AggSystem
+        #   |
+        #   -> Device
+        #------------------------------------------------
+        if csvDevice.has_agg:
+            if not csvDevice.agg_system_name in self.csvAggSystems.keys():
+                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
+
+                agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
+                if agg_num:
+                    agg_num = int(agg_num.group())
+                    prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
+                    next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
+
+                    if prev_agg_name in self.csvAggSystems.keys():
+                        self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
+                        newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                    if next_agg_name in self.csvAggSystems.keys():
+                        self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
+                        newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+            self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
+
+
+        #Create csv Device data model
+        #
+        #Section
+        #   |
+        #   -> Subsystem
+        #       |
+        #       -> Device
+        #------------------------------------------------
+        if not csvDevice.getSectionName() in self.csvSections.keys():
+            self.csvSections[csvDevice.getSectionName()] = CsvSection(csvDevice.getSectionName())
+            self.csvSectionNames.append(csvDevice.getSectionName())
+        self.csvSections[csvDevice.getSectionName()].appendCsvDevice(csvDevice)
+
+
+        if not csvDevice.getSubsystemName() in self.csvSubsystemNames:
+            self.csvSubsystemNames.append(csvDevice.getSubsystemName())
+        if not csvDevice.getClassName() in self.csvClassNames:
+            self.csvClassNames.append(csvDevice.getClassName())
+
+
+    def processMockDevice(self, device_name, aggregate_gui):
+        csvDevice = MockCsvDevice(device_name, aggregate_gui)
+        if csvDevice.has_agg:
+            if not csvDevice.agg_system_name in self.csvAggSystems.keys():
+                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
+
+                agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
+                if agg_num:
+                    agg_num = int(agg_num.group())
+                    prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
+                    next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
+
+                    if prev_agg_name in self.csvAggSystems.keys():
+                        self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
+                        newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                    if next_agg_name in self.csvAggSystems.keys():
+                        self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
+                        newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+
+            self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
 
 
     def StateCheckerRun(self):
