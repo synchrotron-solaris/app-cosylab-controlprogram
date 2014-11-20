@@ -265,6 +265,8 @@ class CsvManager():
                                               self._create_log_file)
 
 
+        self.backgroundInitThread = threading.Thread(target=self.SubscriberRun)
+        self.backgroundInitThread.start()
 
         self.stateThreadAliveMutex = threading.Lock()
         self.stateThreadAlive = True
@@ -343,6 +345,17 @@ class CsvManager():
                         newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
 
             self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
+
+
+    def SubscriberRun(self):
+        for device in self.getCsvDevices():
+            try:
+                print "Subscribing device: ", device.device_name
+                device.state_attribute = PyTango.AttributeProxy(device.device_name + "/state")
+                device.state_listener = StateListener(device.state_attribute, device)
+                device.event_id = device.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, device.state_listener, stateless=True)
+            except PyTango.DevFailed:
+                print "Device: ", device.device_name, " failed!"
 
 
     def StateCheckerRun(self):
@@ -478,13 +491,13 @@ class CsvDevice():
         self.state = PyTango.DevState.UNKNOWN
         self.stateMutex = threading.Lock()
 
-        try:
-            self.state_attribute = PyTango.AttributeProxy(self.device_name + "/state")
-            self.state_listener = StateListener(self.state_attribute, self)
-            self.event_id = self.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, self.state_listener, stateless=True)
-        except PyTango.DevFailed:
-            pass
-            print "Device: ", self.device_name, " failed!"
+        #try:
+        #    self.state_attribute = PyTango.AttributeProxy(self.device_name + "/state")
+        #    self.state_listener = StateListener(self.state_attribute, self)
+        #    self.event_id = self.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, self.state_listener, stateless=True)
+        #except PyTango.DevFailed:
+        #    pass
+        #    print "Device: ", self.device_name, " failed!"
 
         self.state_time_stamp = time.time()
 
@@ -896,4 +909,5 @@ class StateListener:
                 self.csvDevice.setState(event.attr_value.value)
             else:
                 self.csvDevice.setState(PyTango.DevState.UNKNOWN)
+
 
