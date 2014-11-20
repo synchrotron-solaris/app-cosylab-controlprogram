@@ -402,6 +402,9 @@ class CsvManager():
         for device in self.csvDevices.values():
             device.destroy()
 
+        if self.backgroundInitThread:
+            self.backgroundInitThread.join()
+
         if self.stateThread:
             self.stateThread.join()
 
