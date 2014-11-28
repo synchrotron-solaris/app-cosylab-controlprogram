@@ -286,7 +286,7 @@ class CsvManager():
         #------------------------------------------------
         if csvDevice.has_agg:
             if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path, self)
                 self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
 
                 agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
@@ -328,7 +328,7 @@ class CsvManager():
         csvDevice = MockCsvDevice(device_name, aggregate_gui)
         if csvDevice.has_agg:
             if not csvDevice.agg_system_name in self.csvAggSystems.keys():
-                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path)
+                newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path, self)
                 self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
 
                 agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
@@ -802,11 +802,14 @@ class CsvAggSystem():
     nextAgg = None
     prevAgg = None
 
-    def __init__(self, agg_system_name, gui_dir):
+    manager = None
+
+    def __init__(self, agg_system_name, gui_dir, manager):
         self.agg_system_name = agg_system_name
         self.executable_name = self.agg_system_name.rstrip('0123456789 ')
         self.csvDevices = []
         self.gui_dir = gui_dir
+        self.manager = manager
 
 
     def appendCsvDevice(self, csvDevice):
@@ -821,6 +824,7 @@ class CsvAggSystem():
         print "----------AGGSYSTEM------------ ", self.agg_system_name
         for csvDevice in self.csvDevices:
             csvDevice.printInfo()
+
 
     def runGUI(self):
         """Method for running a GUI of this aggregate
@@ -865,6 +869,8 @@ class CsvAggSystem():
             if hasattr(self.gui_widget, "setModel"):
                 self.setModelThread = threading.Thread(target=self.gui_widget.setModel)
                 self.setModelThread.start()
+            if hasattr(self.gui_widget, "setManagerInstance"):
+                self.gui_widget.setManagerInstance(self.manager)
 
             self.gui_widget.show()
             return 1
