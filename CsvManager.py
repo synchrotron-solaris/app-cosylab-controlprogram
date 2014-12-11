@@ -351,9 +351,9 @@ class CsvManager():
         for device in self.getCsvDevices():
             try:
                 print "Subscribing device: ", device.device_name
-                device.state_attribute = PyTango.AttributeProxy(device.device_name + "/state")
-                device.state_listener = StateListener(device.state_attribute, device)
-                device.event_id = device.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, device.state_listener, stateless=True)
+                device.device_proxy = PyTango.DeviceProxy(device.device_name)
+                device.state_listener = StateListener(device)
+                device.event_id = device.device_proxy.subscribe_event("State" ,PyTango.EventType.CHANGE_EVENT, device.state_listener, stateless=True)
             except PyTango.DevFailed:
                 print "Device: ", device.device_name, " failed!"
 
@@ -445,7 +445,7 @@ class CsvDevice():
 
     event_id = None
     state_listener = None
-    state_attribute = None
+    device_proxy = None
 
     state_time_stamp = None
 
@@ -494,13 +494,7 @@ class CsvDevice():
         self.state = PyTango.DevState.UNKNOWN
         self.stateMutex = threading.Lock()
 
-        #try:
-        #    self.state_attribute = PyTango.AttributeProxy(self.device_name + "/state")
-        #    self.state_listener = StateListener(self.state_attribute, self)
-        #    self.event_id = self.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, self.state_listener, stateless=True)
-        #except PyTango.DevFailed:
-        #    pass
-        #    print "Device: ", self.device_name, " failed!"
+
 
         self.state_time_stamp = time.time()
 
@@ -509,7 +503,7 @@ class CsvDevice():
         """Unsubscribes the subscribed events."""
         if self.event_id:
             try:
-                self.state_attribute.unsubscribe_event(self.event_id)
+                self.device_proxy.unsubscribe_event(self.event_id)
             except:
                 pass
 
@@ -569,8 +563,8 @@ class CsvDevice():
         If successful, the state attribute will be set to a new value.
         If not successful, the state attribute will be set to UNKNOWN."""
         try:
-            if self.state_attribute:
-                state = self.state_attribute.read().value
+            if self.device_proxy:
+                state = self.device_proxy.read_attribute("State").value
                 self.setState(state)
         except PyTango.DevFailed:
             self.setState(PyTango.DevState.UNKNOWN)
@@ -896,11 +890,9 @@ class CsvAggSystem():
 class StateListener:
     """Class for handling state subscription."""
 
-    attribute_proxy = None
     csvDevice = None
 
-    def __init__(self, _attribute_proxy, csvDevice):
-        self.attribute_proxy = _attribute_proxy
+    def __init__(self, csvDevice):
         self.csvDevice = csvDevice
 
     def push_event(self, event):
@@ -912,8 +904,8 @@ class StateListener:
                 self.csvDevice.pollState()
                 #self.csvDevice.setState(PyTango.DevState.UNKNOWN)
             if event.errors[0].reason == 'API_AttributePollingNotStarted':
-                if not self.attribute_proxy.is_polled():
-                    self.attribute_proxy.poll(DEFAULT_POLLING_PERIOD)
+                if not self.csvDevice.device_proxy.is_attribute_polled("State"):
+                    self.csvDevice.device_proxy.poll_attribute("State", DEFAULT_POLLING_PERIOD)
             else:
                 self.csvDevice.pollState()
         else:
