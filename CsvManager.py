@@ -3,7 +3,9 @@ into multiple data structures. The file also contains various classes that are a
 CsvManager also updates the state of every device from the CSV file."""
 
 import csv
-import PyTango
+import taurus
+from PyTango import DevState, DevFailed
+from taurus.core import TaurusListener
 from cosywidgets.panel import TaurusDevicePanel
 from PyQt4 import Qt, QtGui, QtCore
 import subprocess, os, threading, time, copy, sys, re
@@ -265,9 +267,7 @@ class CsvManager():
                                               self._create_log_file)
 
 
-        self.backgroundInitThread = threading.Thread(target=self.SubscriberRun)
-        self.backgroundInitThread.start()
-
+    def startStateThread(self):
         self.stateThreadAliveMutex = threading.Lock()
         self.stateThreadAlive = True
         self.stateThread = threading.Thread(target=self.StateCheckerRun)
@@ -347,10 +347,6 @@ class CsvManager():
             self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
 
 
-    def SubscriberRun(self):
-        for device in self.getCsvDevices():
-            device.subscribeState()
-
 
     def StateCheckerRun(self):
         """Target of a StateChecker thread, used for updating the state of every device that was not updated for
@@ -396,9 +392,6 @@ class CsvManager():
         for device in self.csvDevices.values():
             device.destroy()
 
-        if self.backgroundInitThread:
-            self.backgroundInitThread.join()
-
         if self.stateThread:
             self.stateThread.join()
 
@@ -427,7 +420,6 @@ class CsvDevice():
     agg_instance_name = None
 
     display_name = None
-    device_proxy = None
 
     custom_gui_script = None
     gui_dir = None
@@ -439,13 +431,14 @@ class CsvDevice():
 
     description = None
 
-    event_id = None
     state_listener = None
     state_attribute = None
 
     state_time_stamp = None
 
     mainUi = None
+
+    taurus_device = None
 
 
     def __init__(self, mainUi, order_index, device_name, server_name, instance_name, class_name, subsystem_name, section_name, agg_name, custom_gui, gui_dir, device_alias, description, create_log_file=False):
@@ -487,36 +480,28 @@ class CsvDevice():
         if real_gui_dir not in sys.path:
             sys.path.insert(0, real_gui_dir)
 
-        self.state = PyTango.DevState.UNKNOWN
         self.stateMutex = threading.Lock()
-
-        try:
-            self.state_attribute = PyTango.AttributeProxy(self.device_name + "/state")
-        except PyTango.DevFailed:
-            self.state_attribute = None
-
-
         self.state_time_stamp = time.time()
 
 
     def subscribeState(self):
+
+        if self.state_listener:
+            return
+
         try:
-            if not self.state_attribute:
-                self.state_attribute = PyTango.AttributeProxy(self.device_name + "/state")
-            self.state_listener = StateListener(self.state_attribute, self)
-            self.event_id = self.state_attribute.subscribe_event(PyTango.EventType.CHANGE_EVENT, self.state_listener, stateless=True)
-        except PyTango.DevFailed:
-            print "Device: ", self.device_name, " failed!"
+            self.state_attribute = taurus.core.TaurusManager().getAttribute(self.device_name + "/State")
+            self.state_attribute.activatePolling(DEFAULT_POLLING_PERIOD)
+            self.state_listener = StateAttributeHandler(self.device_name + "/State", self)
+            self.state_attribute.addListener(self.state_listener)
+        except:
+            self.setState(DevState.UNKNOWN)
 
 
 
     def destroy(self):
         """Unsubscribes the subscribed events."""
-        if self.event_id:
-            try:
-                self.state_attribute.unsubscribe_event(self.event_id)
-            except:
-                pass
+        return
 
     def printInfo(self):
         """Prints information of the device in the console"""
@@ -573,12 +558,13 @@ class CsvDevice():
         """Tries to acquire the state of the device by polling.
         If successful, the state attribute will be set to a new value.
         If not successful, the state attribute will be set to UNKNOWN."""
+        #print "POLLING ", self.device_name
         try:
             if self.state_attribute:
                 state = self.state_attribute.read().value
                 self.setState(state)
-        except PyTango.DevFailed:
-            self.setState(PyTango.DevState.UNKNOWN)
+        except DevFailed:
+            self.setState(DevState.UNKNOWN)
 
     def getState(self):
         """Getter for device state attribute.
@@ -592,7 +578,9 @@ class CsvDevice():
         """Sets the state attribute to a new value.
         The time stamp, used for holding the time of the last state update, is set.
         State attribute is multi-thread proof."""
+
         if self.state == state:
+            self.state_time_stamp = time.time()
             return
 
         self.stateMutex.acquire()
@@ -606,12 +594,15 @@ class CsvDevice():
         If the device is not accessible, it returns an empty list."""
         attributeNames = []
         try:
-            self.device_proxy = PyTango.DeviceProxy(self.device_name)
-            attributeInfos = self.device_proxy.attribute_list_query()
+            if not self.taurus_device:
+                self.taurus_device = taurus.core.TaurusManager().getDevice(self.device_name)
+
+            attributeInfos = self.taurus_device.attribute_list_query()
             for attributeInfo in attributeInfos:
                 attributeNames.append(attributeInfo.name)
                 #print attributeInfo
-        except PyTango.DevFailed:
+        except DevFailed:
+            self.taurus_device = None
             return []
         return attributeNames
 
@@ -620,13 +611,16 @@ class CsvDevice():
         If the device is not accessible or the attribute does not exist, it returns None.
         :param att_name: attribute name"""
         try:
-            self.device_proxy = PyTango.DeviceProxy(self.device_name)
-            attributeInfos = self.device_proxy.attribute_list_query()
+            if not self.taurus_device:
+                self.taurus_device = taurus.core.TaurusManager().getDevice(self.device_name)
+
+            attributeInfos = self.taurus_device.attribute_list_query()
             for attributeInfo in attributeInfos:
                 if attributeInfo.name == att_name:
                     return attributeInfo
             return None
-        except PyTango.DevFailed:
+        except DevFailed:
+            self.taurus_device = None
             return None
 
     def runGUI(self):
@@ -692,10 +686,13 @@ class CsvDevice():
         """Method checks, if the device is accessible.
         Returns True if so, False otherwise."""
         try:
-            self.device_proxy = PyTango.DeviceProxy(self.device_name)
-            self.device_proxy.ping()
+            if not self.taurus_device:
+                self.taurus_device = taurus.core.TaurusManager().getDevice(self.device_name)
+
+            self.taurus_device.ping()
             return True
-        except PyTango.DevFailed:
+        except DevFailed:
+            self.taurus_device = None
             return False
 
 class MockCsvDevice(CsvDevice):
@@ -898,33 +895,19 @@ class CsvAggSystem():
         return False
 
 
-class StateListener:
-    """Class for handling state subscription."""
 
-    attribute_proxy = None
+class StateAttributeHandler(TaurusListener):
+
     csvDevice = None
 
-    def __init__(self, _attribute_proxy, csvDevice):
-        self.attribute_proxy = _attribute_proxy
+    def __init__(self, name, csvDevice):
+        super(StateAttributeHandler, self).__init__(name)
         self.csvDevice = csvDevice
 
-    def push_event(self, event):
-        """Method is triggered upon subscription event.
-        It changes the state to a new value."""
-        if len(event.errors) > 0:
-            #print event.errors
-            if event.errors[0].reason == "API_EventTimeout":
-                self.csvDevice.pollState()
-                #self.csvDevice.setState(PyTango.DevState.UNKNOWN)
-            if event.errors[0].reason == 'API_AttributePollingNotStarted':
-                if not self.attribute_proxy.is_polled():
-                    self.attribute_proxy.poll(DEFAULT_POLLING_PERIOD)
-            else:
-                self.csvDevice.pollState()
-        else:
-            if event.attr_value.value in PyTango.DevState.values.values():
-                self.csvDevice.setState(event.attr_value.value)
-            else:
-                self.csvDevice.setState(PyTango.DevState.UNKNOWN)
-
-
+    def eventReceived(self, src, type, evt_value):
+        if type == 3:
+            #ERROR
+            self.csvDevice.setState(DevState.UNKNOWN)
+        elif type == 2 or type == 0:
+            #NORMAL
+            self.csvDevice.setState(evt_value.value)

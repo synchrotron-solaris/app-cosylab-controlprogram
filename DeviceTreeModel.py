@@ -26,7 +26,7 @@ class DeviceTreeModel(taurus.qt.qtcore.model.taurusdatabasemodel.TaurusBaseModel
 
     ColorMap = {    PyTango.DevState.ON : QtGui.QColor("green"),
                  PyTango.DevState.OFF : QtGui.QColor("black"),
-               PyTango.DevState.CLOSE : QtGui.QColor("white"),
+               PyTango.DevState.CLOSE : QtGui.QColor("orange"),
                 PyTango.DevState.OPEN : QtGui.QColor("green"),
               PyTango.DevState.INSERT : QtGui.QColor("green"),
              PyTango.DevState.EXTRACT : QtGui.QColor("green"),
@@ -217,7 +217,11 @@ class TaurusTreeDeviceItem(taurus.qt.qtcore.model.taurusdatabasemodel.TaurusTree
 
     def getColor(self):
         """Method returns an instance of QColor that corresponds to the current state of this item."""
-        return DeviceTreeModel.ColorMap[self.dev_info.getState()]
+        state = self.dev_info.getState()
+        if state is not None:
+            return DeviceTreeModel.ColorMap[state]
+        else:
+            return QtGui.QColor("transparent")
 
     def changeState(self, state):
         """Method changes the state of this item.

@@ -89,7 +89,8 @@ class Ui_Form(object):
 
         self.ON.setStyleSheet("QLabel { background-color:rgba(0,128,0,150); border : 1px solid black;}")
         self.OFF.setStyleSheet("QLabel { background-color:rgba(0,0,0,150); color : white; border : 1px solid black;}")
-        self.CLOSE.setStyleSheet("QLabel { background-color:rgba(255,255,255,150); border : 1px solid black;}")
+        #self.CLOSE.setStyleSheet("QLabel { background-color:rgba(255,255,255,150); border : 1px solid black;}")
+        self.CLOSE.setStyleSheet("QLabel { background-color:rgba(255,165,0,150); border : 1px solid black;}")
         self.OPEN.setStyleSheet("QLabel { background-color:rgba(0,128,0,150); border : 1px solid black;}")
         self.INSERT.setStyleSheet("QLabel { background-color:rgba(0,128,0,150); border : 1px solid black;}")
         self.EXTRACT.setStyleSheet("QLabel { background-color:rgba(0,128,0,150); border : 1px solid black;}")

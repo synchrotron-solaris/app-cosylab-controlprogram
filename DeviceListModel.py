@@ -22,7 +22,7 @@ class DeviceListModel(taurus.qt.qtcore.model.taurusdatabasemodel.TaurusBaseModel
 
     ColorMap = {    PyTango.DevState.ON : QtGui.QColor("green"),
                  PyTango.DevState.OFF : QtGui.QColor("black"),
-               PyTango.DevState.CLOSE : QtGui.QColor("white"),
+               PyTango.DevState.CLOSE : QtGui.QColor("orange"),
                 PyTango.DevState.OPEN : QtGui.QColor("green"),
               PyTango.DevState.INSERT : QtGui.QColor("green"),
              PyTango.DevState.EXTRACT : QtGui.QColor("green"),
