@@ -654,6 +654,7 @@ class CsvDevice():
         taurus_panel.setModel(self.device_name)
         self.default_gui.setLayout(Qt.QVBoxLayout())
         self.default_gui.layout().addWidget(taurus_panel)
+        self.default_gui.setWindowTitle(self.device_name)
         self.default_gui.setResult(2)
         self.default_gui.show()
         return 1
@@ -681,6 +682,25 @@ class CsvDevice():
                 if self.default_gui.result() == 2:
                     return True
             return False
+
+    def getGuiPos(self):
+        if self.custom_gui_script:
+            return [0,0]
+        else:
+            if self.default_gui:
+                return [self.default_gui.pos().x(), self.default_gui.pos().y()]
+            else:
+                return [0,0]
+
+    def setGuiPos(self, x,y):
+        if self.custom_gui_script:
+            return
+        else:
+            if self.default_gui:
+                self.default_gui.move(x,y)
+            else:
+                return
+
 
     def isDeviceAccessible(self):
         """Method checks, if the device is accessible.
@@ -890,6 +910,16 @@ class CsvAggSystem():
             if self.gui_widget.result() == 2:
                 return True
         return False
+
+    def getGuiPos(self):
+        if self.gui_widget:
+            return [self.gui_widget.pos().x(), self.gui_widget.pos().y()]
+        else:
+            return [0,0]
+
+    def setGuiPos(self, x,y):
+        if self.gui_widget:
+            self.gui_widget.move(x,y)
 
 
 

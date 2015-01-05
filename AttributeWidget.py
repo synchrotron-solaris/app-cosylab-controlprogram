@@ -175,6 +175,17 @@ class Ui_Dialog(object):
         Used to check if the dialog is opened/closed"""
         return self.dialog.result()
 
+    def getGuiPos(self):
+        if self.dialog:
+            return [self.dialog.pos().x(), self.dialog.pos().y()]
+        else:
+            return [0,0]
+
+
+    def setGuiPos(self, x,y):
+        if self.dialog:
+            self.dialog.move(x,y)
+
 
 
 

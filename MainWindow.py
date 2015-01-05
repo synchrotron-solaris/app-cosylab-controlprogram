@@ -337,7 +337,7 @@ class Ui_MainWindow(object):
             self.expandButton.setEnabled(True)
             self.collapseButton.setEnabled(True)
 
-    def openAttView(self, devices, att_names):
+    def openAttView(self, devices, att_names, x=0, y=0):
         """Open a new Attribute View for given devices and attribute names.
         :param devices: list of CsvDevice instances
         :param att_names: list of attribute names"""
@@ -350,6 +350,7 @@ class Ui_MainWindow(object):
         self.dialogs.append(ui)
         dialog.setResult(2)
         dialog.show()
+        dialog.move(x,y)
 
     def refreshAttViewList(self):
         """Removes dead Attribute Views."""
@@ -400,6 +401,8 @@ class Ui_MainWindow(object):
                 csvDevice = self.csvManager.getCsvDevice(info[1])
                 if csvDevice:
                     csvDevice.runGUI()
+                    pos = info[2].split(",")
+                    csvDevice.setGuiPos(int(pos[0]), int(pos[1]))
                 else:
                     errorMessage += "Device: " + info[1] + " does not exist!\n"
                     errorsCheck = False
@@ -409,12 +412,15 @@ class Ui_MainWindow(object):
                 csvAggSystem = self.csvManager.getCsvAggSystem(info[1])
                 if csvAggSystem:
                     csvAggSystem.runGUI()
+                    pos = info[2].split(",")
+                    csvAggSystem.setGuiPos(int(pos[0]), int(pos[1]))
                 else:
                     errorMessage += "Aggregate: " + info[1] + " does not exist!\n"
                     errorsCheck = False
 
             # Attribute View
             elif info[0] == "3":
+                pos = info[2].split(",")
                 # Check Syntax
                 info = info[1].split("*")
                 if len(info) == 1:
@@ -437,7 +443,7 @@ class Ui_MainWindow(object):
                 att_names = info[1].split("|")
 
                 # Open View
-                self.openAttView(spec_devices, att_names)
+                self.openAttView(spec_devices, att_names, x=int(pos[0]), y=int(pos[1]))
 
             # Comment
             elif info[0] == "#":
@@ -469,9 +475,13 @@ class Ui_MainWindow(object):
                 csvNames = self.csvManager.getDeviceNamesGuiOn()
                 aggNames = self.csvManager.getAggSystemNamesGuiOn()
                 for csvName in csvNames:
-                    f.write("1:" + csvName + "\n")
+                    pos = self.csvManager.getCsvDevice(csvName).getGuiPos()
+                    line = "1:" + csvName + ":" + str(pos[0]) + "," + str(pos[1]) + "\n"
+                    f.write(line)
                 for aggName in aggNames:
-                    f.write("2:" + aggName + "\n")
+                    pos = self.csvManager.getCsvAggSystem(aggName).getGuiPos()
+                    line = "2:" + aggName + ":" + str(pos[0]) + "," + str(pos[1]) + "\n"
+                    f.write(line)
                 for dialog in self.dialogs:
                     line = "3:"
                     for devName in dialog.devNames:
@@ -481,6 +491,8 @@ class Ui_MainWindow(object):
                     for attName in dialog.attNames:
                         line += attName + "|"
                     line = line.rstrip("|")
+                    pos = dialog.getGuiPos()
+                    line += ":" + str(pos[0]) + "," + str(pos[1])
                     line += "\n"
                     f.write(line)
             #QtGui.QMessageBox.question(None, 'Info', "Profile saved successfully!", QtGui.QMessageBox.Ok)
