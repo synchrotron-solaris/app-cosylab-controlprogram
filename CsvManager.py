@@ -868,9 +868,6 @@ class CsvAggSystem():
                 self.gui_widget.addNext(self.runNextGui)
             if self.prevAgg and hasattr(self.gui_widget, "addPrev"):
                 self.gui_widget.addPrev(self.runPrevGui)
-            if hasattr(self.gui_widget, "setModel"):
-                self.setModelThread = threading.Thread(target=self.gui_widget.setModel)
-                self.setModelThread.start()
             if hasattr(self.gui_widget, "setManagerInstance"):
                 self.gui_widget.setManagerInstance(self.manager)
 
