@@ -1,7 +1,7 @@
 """FilterWidget.py: File containing a Controller Class dedicated to the FilterWidget.
 FilterWidget is an extended QWidget, presenting options for filtering a dedicated Device Tree to the user."""
 
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtCore, QtGui, Qt
 
 __author__ = "Cosylab"
 
@@ -65,6 +65,14 @@ class Ui_Form(object):
         self.class_filter_cob.setEditable(True)
         self.class_filter_cob.setObjectName(_fromUtf8("class_filter_cob"))
         self.horizontalLayout.addWidget(self.class_filter_cob)
+
+        self.remove_filters_b = QtGui.QPushButton(self.groupBox)
+        self.remove_filters_b.setIcon(QtGui.QIcon(':/designer/editdelete.png'))
+        self.remove_filters_b.setIconSize(Qt.QSize(15,15))
+        self.remove_filters_b.setFixedSize(27,27)
+        self.remove_filters_b.setStyleSheet("text-align: center;")
+        self.horizontalLayout.addWidget(self.remove_filters_b)
+
         self.verticalLayout.addWidget(self.groupBox)
 
         # Additional
@@ -77,6 +85,7 @@ class Ui_Form(object):
         self.loc_filter_cob.editTextChanged.connect(self.filterChanged)
         self.sub_filter_cob.editTextChanged.connect(self.filterChanged)
         self.class_filter_cob.editTextChanged.connect(self.filterChanged)
+        self.remove_filters_b.clicked.connect(self.removeFilters)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -88,6 +97,12 @@ class Ui_Form(object):
         self.label_3.setText(_translate("Form", "Subsystem:", None))
         self.label_4.setText(_translate("Form", "Class:", None))
 
+
+    def removeFilters(self):
+        self.loc_filter_cob.setCurrentIndex(0)
+        self.sub_filter_cob.setCurrentIndex(0)
+        self.class_filter_cob.setCurrentIndex(0)
+        self.applyFilters()
 
     def filterChanged(self):
         """Signal handler of a filter-change event."""
@@ -138,10 +153,12 @@ class Ui_Form(object):
             self.loc_filter_cob.setEnabled(False)
             self.sub_filter_cob.setEnabled(False)
             self.class_filter_cob.setEnabled(False)
+            self.remove_filters_b.setEnabled(False)
         else:
             self.loc_filter_cob.setEnabled(True)
             self.sub_filter_cob.setEnabled(True)
             self.class_filter_cob.setEnabled(True)
+            self.remove_filters_b.setEnabled(True)
 
 
 

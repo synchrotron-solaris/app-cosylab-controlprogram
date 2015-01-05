@@ -156,6 +156,7 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
+        self.menuEdit = QtGui.QMenu(self.menubar)
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
@@ -166,7 +167,12 @@ class Ui_MainWindow(object):
         self.actionLoad_Profile.setObjectName(_fromUtf8("actionLoad_Profile"))
         self.menuFile.addAction(self.actionSave_profile)
         self.menuFile.addAction(self.actionLoad_Profile)
+
+        self.actionMonitor = QtGui.QAction(MainWindow)
+        self.menuEdit.addAction(self.actionMonitor)
+
         self.menubar.addAction(self.menuFile.menuAction())
+        self.menubar.addAction(self.menuEdit.menuAction())
 
 
         # ColorWidget
@@ -177,6 +183,7 @@ class Ui_MainWindow(object):
         self.colorWidgetUi = ColorWidget.Ui_Form()
         self.colorWidgetUi.setupUi(self.colorWidget)
         self.verticalLayout.addWidget(self.colorWidget)
+        self.colorWidget.hide()
 
         # Additional
         self.expandButton.clicked.connect(self.expandTree)
@@ -184,6 +191,7 @@ class Ui_MainWindow(object):
         self.selectButton.clicked.connect(self.selectAll)
         self.actionLoad_Profile.triggered.connect(self.loadProfile)
         self.actionSave_profile.triggered.connect(self.saveProfile)
+        self.actionMonitor.triggered.connect(self.monitorStates)
         #self.taurusTreeWidget.header().close()
         #self.taurusTreeWidget2.header().close()
         #self.taurusTreeWidget3.header().close()
@@ -218,9 +226,35 @@ class Ui_MainWindow(object):
         self.devicesTabWidget.setTabText(self.devicesTabWidget.indexOf(self.devicesTab2), _translate("MainWindow", "Device List", None))
         self.devicesTabWidget.setTabText(self.devicesTabWidget.indexOf(self.devicesTab3), _translate("MainWindow", "Device Groups", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
+        self.menuEdit.setTitle(_translate("MainWindow", "Edit", None))
         self.actionSave_profile.setText(_translate("MainWindow", "Save Profile", None))
         self.actionLoad_Profile.setText(_translate("MainWindow", "Load Profile", None))
+        self.actionMonitor.setText(_translate("MainWindow", "Monitor States", None))
 
+
+    def monitorStates(self):
+        reply = QtGui.QMessageBox.question(None, 'Warning', "This operation might take several minutes to complete.\n"
+                "Are you sure you want to proceed?", QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            if self.csvManager:
+                self.colorWidget.setHidden(False)
+                self.csvManager.startStateThread()
+                devices = self.csvManager.getCsvDevices()
+                size = len(devices)
+
+                progressBar = QtGui.QProgressDialog("Subscribing...", "Abort", 0, size)
+                progressBar.setWindowTitle("Monitor States")
+                progressBar.setWindowModality(QtCore.Qt.WindowModal)
+
+                for i in range(0,len(devices)):
+                    progressBar.setValue(i)
+                    if progressBar.wasCanceled():
+                        break
+
+                    #print devices[i].device_name
+                    devices[i].subscribeState()
+            else:
+                QtGui.QMessageBox.question(None, 'Info', "Could not enable State monitoring", QtGui.QMessageBox.Ok)
 
     def closeAdminPanel(self):
         self.adminPanelUi.moveHide()
@@ -303,7 +337,7 @@ class Ui_MainWindow(object):
             self.expandButton.setEnabled(True)
             self.collapseButton.setEnabled(True)
 
-    def openAttView(self, devices, att_names):
+    def openAttView(self, devices, att_names, x=0, y=0):
         """Open a new Attribute View for given devices and attribute names.
         :param devices: list of CsvDevice instances
         :param att_names: list of attribute names"""
@@ -316,6 +350,7 @@ class Ui_MainWindow(object):
         self.dialogs.append(ui)
         dialog.setResult(2)
         dialog.show()
+        dialog.move(x,y)
 
     def refreshAttViewList(self):
         """Removes dead Attribute Views."""
@@ -366,6 +401,8 @@ class Ui_MainWindow(object):
                 csvDevice = self.csvManager.getCsvDevice(info[1])
                 if csvDevice:
                     csvDevice.runGUI()
+                    pos = info[2].split(",")
+                    csvDevice.setGuiPos(int(pos[0]), int(pos[1]))
                 else:
                     errorMessage += "Device: " + info[1] + " does not exist!\n"
                     errorsCheck = False
@@ -375,12 +412,15 @@ class Ui_MainWindow(object):
                 csvAggSystem = self.csvManager.getCsvAggSystem(info[1])
                 if csvAggSystem:
                     csvAggSystem.runGUI()
+                    pos = info[2].split(",")
+                    csvAggSystem.setGuiPos(int(pos[0]), int(pos[1]))
                 else:
                     errorMessage += "Aggregate: " + info[1] + " does not exist!\n"
                     errorsCheck = False
 
             # Attribute View
             elif info[0] == "3":
+                pos = info[2].split(",")
                 # Check Syntax
                 info = info[1].split("*")
                 if len(info) == 1:
@@ -403,7 +443,7 @@ class Ui_MainWindow(object):
                 att_names = info[1].split("|")
 
                 # Open View
-                self.openAttView(spec_devices, att_names)
+                self.openAttView(spec_devices, att_names, x=int(pos[0]), y=int(pos[1]))
 
             # Comment
             elif info[0] == "#":
@@ -435,9 +475,13 @@ class Ui_MainWindow(object):
                 csvNames = self.csvManager.getDeviceNamesGuiOn()
                 aggNames = self.csvManager.getAggSystemNamesGuiOn()
                 for csvName in csvNames:
-                    f.write("1:" + csvName + "\n")
+                    pos = self.csvManager.getCsvDevice(csvName).getGuiPos()
+                    line = "1:" + csvName + ":" + str(pos[0]) + "," + str(pos[1]) + "\n"
+                    f.write(line)
                 for aggName in aggNames:
-                    f.write("2:" + aggName + "\n")
+                    pos = self.csvManager.getCsvAggSystem(aggName).getGuiPos()
+                    line = "2:" + aggName + ":" + str(pos[0]) + "," + str(pos[1]) + "\n"
+                    f.write(line)
                 for dialog in self.dialogs:
                     line = "3:"
                     for devName in dialog.devNames:
@@ -447,6 +491,8 @@ class Ui_MainWindow(object):
                     for attName in dialog.attNames:
                         line += attName + "|"
                     line = line.rstrip("|")
+                    pos = dialog.getGuiPos()
+                    line += ":" + str(pos[0]) + "," + str(pos[1])
                     line += "\n"
                     f.write(line)
             #QtGui.QMessageBox.question(None, 'Info', "Profile saved successfully!", QtGui.QMessageBox.Ok)
