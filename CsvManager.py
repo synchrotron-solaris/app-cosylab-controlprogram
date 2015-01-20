@@ -211,6 +211,10 @@ class CsvManager():
                     print "Skipped row " + str(rowCounter) + " because it contains too little columns"
                     continue
 
+                if row[0].startswith("#"):
+                    print "Skipped row " + str(rowCounter) + " because it is commented out"
+                    continue
+
                 tangoDeviceNameParts = row[indexTangoDeviceName].split('/')
                 if len(tangoDeviceNameParts) < 3:
                     print "Skipped row " + str(rowCounter) + " because the device name is in the wrong format (device name = " + row[indexTangoDeviceName] + ")"
@@ -228,9 +232,7 @@ class CsvManager():
                     print "Skipped row " + str(rowCounter) + " because the device is not managed by ControlProgram"
                     continue
 
-                if row[0].startswith("#"):
-                    print "Skipped row " + str(rowCounter) + " because it is commented out"
-                    continue
+
 
 
 
