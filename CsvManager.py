@@ -193,6 +193,7 @@ class CsvManager():
         indexInstanceName = self.CONST_CSV_COLUMNS.index(self.CONST_PROPERTY_INSTANCE_NAME)
         indexDSClassName = self.CONST_CSV_COLUMNS.index(self.CONST_PROPERTY_DS_CLASS_NAME)
         indexDescription = self.CONST_CSV_COLUMNS.index(self.CONST_PROPERTY_DESCRIPTION)
+        indexManagedByCS = self.CONST_CSV_COLUMNS.index(self.CONST_PROPERTY_MANAGED_BY_CS)
 
 
         rowCounter = 0
@@ -223,6 +224,13 @@ class CsvManager():
                     print "Skipped row " + str(rowCounter) + " because one of the column is empty (section name, subsystem name)"
                     continue
 
+                if row[indexManagedByCS] != "Y":
+                    print "Skipped row " + str(rowCounter) + " because the device is not managed by ControlProgram"
+                    continue
+
+                if row[0].startswith("#"):
+                    print "Skipped row " + str(rowCounter) + " because it is commented out"
+                    continue
 
 
 
