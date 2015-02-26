@@ -256,7 +256,7 @@ class CsvManager():
 
                     for i in range(1,len(multiAgg)):
                         # PROCESS MOCK DEVICE
-                        self.processMockDevice(row[indexTangoDeviceName], multiAgg[i])
+                        self.processMockDevice(row[indexTangoDeviceName], multiAgg[i], row[indexDescription])
 
 
 
@@ -265,7 +265,7 @@ class CsvManager():
                 else:
                     if row[indexTangoDeviceName] in self.csvDevices.keys():
                         # PROCESS MOCK DEVICE
-                        self.processMockDevice(row[indexTangoDeviceName], row[indexAggregate])
+                        self.processMockDevice(row[indexTangoDeviceName], row[indexAggregate], row[indexDescription])
                     else:
                         # PROCESS DEVICE
                         print "Processing device " + row[indexTangoDeviceName] + " ************"
@@ -341,8 +341,8 @@ class CsvManager():
             self.csvClassNames.append(csvDevice.getClassName())
 
 
-    def processMockDevice(self, device_name, aggregate_gui):
-        csvDevice = MockCsvDevice(device_name, aggregate_gui)
+    def processMockDevice(self, device_name, aggregate_gui, description):
+        csvDevice = MockCsvDevice(device_name, aggregate_gui, description)
         if csvDevice.has_agg:
             if not csvDevice.agg_system_name in self.csvAggSystems.keys():
                 newCsvAggSystem = CsvAggSystem(csvDevice.agg_system_name, self.gui_dir_path, self)
@@ -734,8 +734,9 @@ class CsvDevice():
 
 class MockCsvDevice(CsvDevice):
 
-    def __init__(self, device_name, agg_name):
+    def __init__(self, device_name, agg_name, description):
         self.device_name = device_name
+        self.description = description
         agg_split = agg_name.split("-", 1)
         if len(agg_split) == 2:
             self.has_agg = True
