@@ -300,10 +300,17 @@ class CsvManager():
                 self.csvAggSystems[csvDevice.agg_system_name] = newCsvAggSystem
 
                 agg_num = re.search(r'\d+$', csvDevice.agg_system_name)
+
                 if agg_num:
                     agg_num = int(agg_num.group())
-                    prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
-                    next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
+                    if agg_num == 10:
+                        prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), "0" + str(agg_num-1))
+                    else:
+                        prev_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num-1))
+                    if agg_num == 9:
+                        next_agg_name = csvDevice.agg_system_name.replace("0" + str(agg_num), str(agg_num+1))
+                    else:
+                        next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
 
                     if prev_agg_name in self.csvAggSystems.keys():
                         self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
