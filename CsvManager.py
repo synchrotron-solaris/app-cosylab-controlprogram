@@ -656,6 +656,12 @@ class CsvDevice():
                     self.default_gui.activateWindow()
                 except:
                     pass
+            elif isinstance(self.custom_gui, QtGui.QDialog):
+                try:
+                    self.custom_gui.raise_()
+                    self.custom_gui.activateWindow()
+                except:
+                    pass
             return 0
         if not self.isDeviceAccessible():
             return -1
@@ -680,18 +686,36 @@ class CsvDevice():
         file_path = self.gui_dir + "/" + self.custom_gui_script + ".py"
         if not os.path.isfile(file_path):
             return -2
+
+
         try:
-            redirect_output = (" &> ~/.ControlProgram/%s.log" % self.custom_gui_script) if self._create_log_file else ""
-            self.custom_gui = subprocess.Popen("python2.7 %s %s %s" % (file_path, self.device_name, redirect_output), shell=True)
+            command_module = __import__(self.custom_gui_script)
+            if not hasattr(command_module, "getGuiWidget"):
+                redirect_output = (" &> ~/.ControlProgram/%s.log" % self.custom_gui_script) if self._create_log_file else ""
+                self.custom_gui = subprocess.Popen("python2.7 %s %s %s" % (file_path, self.device_name, redirect_output), shell=True)
+                return 2
+
+            self.custom_gui = command_module.getGuiWidget([self.device_name])
+            if self.custom_gui is None:
+                return 2
+            self.custom_gui.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
+            self.custom_gui.setResult(2)
+            self.custom_gui.show()
+            return 2
+        except ImportError:
+            return -3
         except OSError:
             return -3
-        return 2
+
 
     def isGuiRunning(self):
         """Method returns True, if a GUI of this device is running, False otherwise."""
         if self.custom_gui_script:
             if self.custom_gui:
-                if self.custom_gui.poll() is None:
+                if isinstance(self.custom_gui, QtGui.QDialog):
+                    if self.custom_gui.result() == 2:
+                        return True
+                elif self.custom_gui.poll() is None:
                     return True
             return False
         else:
