@@ -130,7 +130,7 @@ class DeviceTreeModel(taurus.qt.qtcore.model.taurusdatabasemodel.TaurusBaseModel
                 row3 = 0
                 allHidden2 = True
                 for deviceItem in subsystemItem._childItems:
-                    if deviceItem.dev_info.class_name.find(tree_filter['class']) is -1:
+                    if deviceItem.dev_info.class_name.lower() != tree_filter['class'].toLower():
                         view.setRowHidden(row3, self.index(row2,0, self.index(row1,0)), True)
                     else:
                         view.setRowHidden(row3, self.index(row2,0, self.index(row1,0)), False)
