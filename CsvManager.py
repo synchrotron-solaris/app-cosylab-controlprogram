@@ -91,6 +91,7 @@ class CsvManager():
 
 
     csv_file_path = None
+    gcsv_file_path = None
     gui_dir_path = None
     csvSections = {}
     csvDevices = {}
@@ -98,14 +99,16 @@ class CsvManager():
     csvSectionNames = []
     csvSubsystemNames = []
     csvClassNames = []
+    groupConfiguration = {}
 
     stateThread = None
     stateThreadAlive = None
     stateThreadAliveMutex = None
 
-    def __init__(self, filePath, guiDir, ui, create_log_file=False):
+    def __init__(self, csv, gcsv, guiDir, ui, create_log_file=False):
         self.gui_dir_path = guiDir
-        self.csv_file_path = filePath
+        self.csv_file_path = csv
+        self.gcsv_file_path = gcsv
         self._create_log_file = create_log_file
         self.initialize(ui)
 
@@ -196,6 +199,22 @@ class CsvManager():
         indexManagedByCS = self.CONST_CSV_COLUMNS.index(self.CONST_PROPERTY_MANAGED_BY_CS)
 
 
+        # Group GUI configuration
+        if self.gcsv_file_path:
+            with open(self.gcsv_file_path, 'rb') as gcsvFile:
+                #dialect = csv.Sniffer().sniff(gcsvFile.read(4096), "\t,;")
+                #gcsvFile.seek(0)
+                csvReader = csv.reader(gcsvFile, delimiter=";", quotechar='"')
+                counter = 1
+                for row in csvReader:
+                    if len(row) == 4 and not row[0].startswith("#"):
+                        data = row[1:]
+                        data.append(counter)
+                        print data
+                        self.groupConfiguration[row[0]] = data
+                        counter += 1
+
+
         rowCounter = 0
         with open(self.csv_file_path, 'rb') as csvFile:
             dialect = csv.Sniffer().sniff(csvFile.read(4096), "\t,;")
@@ -277,6 +296,24 @@ class CsvManager():
                                               self._create_log_file)
 
 
+        for key in self.groupConfiguration.keys():
+            if key in self.csvAggSystems:
+                nextAggs = []
+                for nextAggKey in self.groupConfiguration[key][1].split("|"):
+                    if nextAggKey in self.csvAggSystems.keys():
+                        nextAggs.append(self.csvAggSystems[nextAggKey])
+                self.csvAggSystems[key].nextAggs = nextAggs
+
+                prevAggs = []
+                for prevAggKey in self.groupConfiguration[key][0].split("|"):
+                    if prevAggKey in self.csvAggSystems.keys():
+                        prevAggs.append(self.csvAggSystems[prevAggKey])
+                self.csvAggSystems[key].prevAggs = prevAggs
+
+                self.csvAggSystems[key].additional_arg = self.groupConfiguration[key][2]
+                self.csvAggSystems[key].order_index = self.groupConfiguration[key][3]
+
+
     def startStateThread(self):
         self.stateThreadAliveMutex = threading.Lock()
         self.stateThreadAlive = True
@@ -313,11 +350,11 @@ class CsvManager():
                         next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
 
                     if prev_agg_name in self.csvAggSystems.keys():
-                        self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
-                        newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                        self.csvAggSystems[prev_agg_name].nextAggs = [newCsvAggSystem]
+                        newCsvAggSystem.prevAggs = [self.csvAggSystems[prev_agg_name]]
                     if next_agg_name in self.csvAggSystems.keys():
-                        self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
-                        newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+                        self.csvAggSystems[next_agg_name].prevAggs = [newCsvAggSystem]
+                        newCsvAggSystem.nextAggs = [self.csvAggSystems[next_agg_name]]
             self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
 
 
@@ -355,11 +392,11 @@ class CsvManager():
                     next_agg_name = csvDevice.agg_system_name.replace(str(agg_num), str(agg_num+1))
 
                     if prev_agg_name in self.csvAggSystems.keys():
-                        self.csvAggSystems[prev_agg_name].nextAgg = newCsvAggSystem
-                        newCsvAggSystem.prevAgg = self.csvAggSystems[prev_agg_name]
+                        self.csvAggSystems[prev_agg_name].nextAggs = [newCsvAggSystem]
+                        newCsvAggSystem.prevAggs = [self.csvAggSystems[prev_agg_name]]
                     if next_agg_name in self.csvAggSystems.keys():
-                        self.csvAggSystems[next_agg_name].prevAgg = newCsvAggSystem
-                        newCsvAggSystem.nextAgg = self.csvAggSystems[next_agg_name]
+                        self.csvAggSystems[next_agg_name].prevAggs = [newCsvAggSystem]
+                        newCsvAggSystem.nextAggs = [self.csvAggSystems[next_agg_name]]
 
             self.csvAggSystems[csvDevice.agg_system_name].appendCsvDevice(csvDevice)
 
@@ -863,17 +900,24 @@ class CsvAggSystem():
     gui_widget = None
     gui_dir = None
 
-    nextAgg = None
-    prevAgg = None
+    order_index = None
+
+    nextAggs = None
+    prevAggs = None
 
     manager = None
+
+    additional_arg = None
 
     def __init__(self, agg_system_name, gui_dir, manager):
         self.agg_system_name = agg_system_name
         self.executable_name = self.agg_system_name.rstrip('0123456789 ')
         self.csvDevices = []
+        self.prevAggs = []
+        self.nextAggs = []
         self.gui_dir = gui_dir
         self.manager = manager
+        self.order_index = -1
 
 
     def appendCsvDevice(self, csvDevice):
@@ -917,6 +961,9 @@ class CsvAggSystem():
                 line.append(csvDevice.getDescription())
             else:
                 line.append("No description available")
+        if self.additional_arg:
+            line.append("--ADD")
+            line.append(self.additional_arg)
 
         try:
             command_module = __import__(self.executable_name)
@@ -926,10 +973,24 @@ class CsvAggSystem():
             self.gui_widget.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowMaximizeButtonHint)
             self.gui_widget.setResult(2)
 
-            if self.nextAgg and hasattr(self.gui_widget, "addNext"):
-                self.gui_widget.addNext(self.runNextGui)
-            if self.prevAgg and hasattr(self.gui_widget, "addPrev"):
-                self.gui_widget.addPrev(self.runPrevGui)
+            if len(self.nextAggs) > 0 and hasattr(self.gui_widget, "addNext"):
+                try:
+                    index = 0
+                    for nextAgg in self.nextAggs:
+                        self.gui_widget.addNext(self.runNextGui, index, nextAgg.agg_system_name)
+                        index += 1
+                except TypeError:
+                    self.gui_widget.addNext(self.runNextGui)
+
+            if len(self.prevAggs) > 0 and hasattr(self.gui_widget, "addPrev"):
+                try:
+                    index = 0
+                    for prevAgg in self.prevAggs:
+                        self.gui_widget.addPrev(self.runPrevGui, index, prevAgg.agg_system_name)
+                        index += 1
+                except TypeError:
+                    self.gui_widget.addPrev(self.runPrevGui)
+
             if hasattr(self.gui_widget, "setManagerInstance"):
                 self.gui_widget.setManagerInstance(self.manager)
 
@@ -938,13 +999,13 @@ class CsvAggSystem():
         except ImportError:
             return -2
 
-    def runNextGui(self):
+    def runNextGui(self, index=0):
         self.gui_widget.close()
-        self.nextAgg.runGUI()
+        self.nextAggs[index].runGUI()
 
-    def runPrevGui(self):
+    def runPrevGui(self, index=0):
         self.gui_widget.close()
-        self.prevAgg.runGUI()
+        self.prevAggs[index].runGUI()
 
     def isGuiRunning(self):
         """Method returns True, if a GUI of this aggregate is running, False otherwise"""

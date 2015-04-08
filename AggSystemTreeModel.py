@@ -35,8 +35,9 @@ class AggSystemTreeModel(taurus.qt.qtcore.model.taurusdatabasemodel.TaurusDbBase
 
         rootItem = self._rootItem
         csvAggSystems = self.csvManager.getCsvAggSystems()
-        for csvAggSystemKey in sorted(csvAggSystems.keys()):
-            csvAggSystem = csvAggSystems[csvAggSystemKey]
+        for csvAggSystem in sorted(sorted(csvAggSystems.itervalues(), key=lambda y: y.agg_system_name), key=lambda x: x.order_index):
+        #for csvAggSystemKey in sorted(csvAggSystems.keys()):
+            #csvAggSystem = csvAggSystems[csvAggSystemKey]
             aggSystemItem = TaurusTreeAggSystemItem(self, csvAggSystem, rootItem)
             rootItem.appendChild(aggSystemItem)
 
