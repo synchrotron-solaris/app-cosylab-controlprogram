@@ -232,6 +232,17 @@ class Ui_MainWindow(object):
         self.actionMonitor.setText(_translate("MainWindow", "Monitor States", None))
 
 
+
+    def monitorState(self):
+        dev_names = self.getSelectedDevicesNames()
+        if len(dev_names) > 100:
+            self.monitorStates()
+            return
+        for dev_name in dev_names:
+            self.csvManager.getCsvDevice(dev_name).subscribeState()
+
+
+
     def monitorStates(self):
         reply = QtGui.QMessageBox.question(None, 'Warning', "This operation might take several minutes to complete.\n"
                 "Are you sure you want to proceed?", QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
@@ -277,6 +288,8 @@ class Ui_MainWindow(object):
         if self.initFinished:
             if self.taurusTreeWidget.model():
                 self.taurusTreeWidget.model().layoutChanged.emit()
+            if self.taurusTreeWidget2.model():
+                self.taurusTreeWidget2.model().layoutChanged.emit()
 
     def openGui(self):
         """Method for opening a GUI.
