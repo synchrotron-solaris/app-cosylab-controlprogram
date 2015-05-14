@@ -967,6 +967,9 @@ class CsvAggSystem():
 
         try:
             command_module = __import__(self.executable_name)
+            if not hasattr(command_module, "getGuiWidget"):
+                self.custom_gui = subprocess.Popen("python2.7 %s %s" % (file_path, " ".join(line)), shell=True)
+                return 2
             self.gui_widget = command_module.getGuiWidget(line)
             if self.gui_widget is None:
                 return 2
