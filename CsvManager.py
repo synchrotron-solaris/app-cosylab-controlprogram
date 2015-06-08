@@ -683,10 +683,9 @@ class CsvDevice():
         0  - GUI already running
         1  - Default GUI success
         2  - Custom GUI success
-        -1 - Device not accessible
+        -1 - Device not accessible/responsive
         -2 - Custom GUI script not found
-        -3 - Error whilst running script
-        string - Device error"""
+        -3 - Error whilst running script"""
         if self.isGuiRunning():
             if self.default_gui:
                 try:
@@ -701,11 +700,9 @@ class CsvDevice():
                 except:
                     pass
             return 0
-        if self.isDeviceAccessible():
-            res = self.isDeviceResponsive()
-            if not res == True:
-                return res
-        else:
+        if not self.isDeviceAccessible():
+            return -1
+        if not self.isDeviceResponsive():
             return -1
         if self.custom_gui_script:
             return self._runCustomGui()
@@ -803,8 +800,8 @@ class CsvDevice():
             state_attribute = taurus.core.TaurusManager().getAttribute(self.device_name + "/State")
             state_attribute.read()
             return True
-        except DevFailed as e:
-            return str(e)
+        except DevFailed:
+            return False
 
 class MockCsvDevice(CsvDevice):
 
