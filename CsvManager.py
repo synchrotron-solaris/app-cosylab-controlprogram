@@ -796,12 +796,15 @@ class CsvDevice():
             return False
 
     def isDeviceResponsive(self):
+        """Method checks, if the device is responsive.
+        Returns True if so, False otherwise."""
         try:
             state_attribute = taurus.core.TaurusManager().getAttribute(self.device_name + "/State")
             state_attribute.read()
             return True
         except DevFailed:
             return False
+
 
 class MockCsvDevice(CsvDevice):
 
