@@ -317,6 +317,8 @@ class Ui_MainWindow(object):
                     QtGui.QMessageBox.question(None, 'Warning', "GUI script for device " + selectedDevice.getDeviceName().upper() + " not found!", QtGui.QMessageBox.Ok)
                 elif index == -3:
                     QtGui.QMessageBox.question(None, 'Warning', "Error occurred whilst running GUI script for device " + selectedDevice.getDeviceName().upper(), QtGui.QMessageBox.Ok)
+                else:
+                    QtGui.QMessageBox.question(None, 'Warning', "Device:  " + selectedDevice.getDeviceName().upper() + " reported and error: \n" + index, QtGui.QMessageBox.Ok)
         elif self.devicesTabWidget.currentIndex() == 2:
             selectedAggs = self.getSelectedAggregates()
             if len(selectedAggs) == 0:
