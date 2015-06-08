@@ -804,7 +804,7 @@ class CsvDevice():
             state_attribute.read()
             return True
         except DevFailed as e:
-            return e
+            return str(e)
 
 class MockCsvDevice(CsvDevice):
 
