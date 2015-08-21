@@ -7,6 +7,7 @@ from DeviceTreeView import DeviceTreeView
 from DeviceListView import DeviceListView
 from AggSystemTreeView import AggSystemTreeView
 from AdminPanel import Ui_AdminPanel
+from tools_menu.menu_builder import MenuBuilder
 import FilterWidget
 import ColorWidget
 import ApplyWidget
@@ -73,6 +74,11 @@ class Ui_MainWindow(object):
         MainWindow.resize(700, 900)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
+        
+        # Menu Builder
+        #
+        # ---------------------
+        self.menuBuilder = MenuBuilder()
 
         # Admin Panel
         #
@@ -173,6 +179,8 @@ class Ui_MainWindow(object):
 
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
+        self.toolsMenu = self.menuBuilder.prepareMenus(MainWindow)
+        self.menubar.addMenu(self.toolsMenu)
 
 
         # ColorWidget
