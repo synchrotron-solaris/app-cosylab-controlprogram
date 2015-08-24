@@ -10,3 +10,6 @@
 bin/
 obj/
 build/
+
+.project
+.pydevproject
