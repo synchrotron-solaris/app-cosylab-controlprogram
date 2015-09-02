@@ -14,6 +14,7 @@ import ApplyWidget
 import AttributeWidget
 import os
 import threading
+import subprocess
 
 __author__ = "Cosylab"
 
@@ -339,6 +340,7 @@ class Ui_MainWindow(object):
                 if index == 1:
                     self.statusbar.showMessage("Opening GUI for device group " + selectedAgg.agg_system_name.upper(), 1000)
                 elif index == 0:
+                    subprocess.call(["/home/Operator/scripts/ControlProgramGUIs.sh", str(selectedAgg.agg_system_name)])
                     self.statusbar.showMessage("GUI for device group " + selectedAgg.agg_system_name.upper() + " already running", 1000)
                 elif index == -1:
                     QtGui.QMessageBox.question(None, 'Warning', "GUI script for device group " + selectedAgg.agg_system_name.upper() + " not found!", QtGui.QMessageBox.Ok)
