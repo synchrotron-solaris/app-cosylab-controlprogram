@@ -1,58 +1,35 @@
 =====================================
-Facility View Application
+ControlProgram Application
 =====================================
 
 
 Requirements:
 =====================================
-
--Python 2.6 or greater
--Python modules:
-    -PyQt4
-    -PyTango
-    -taurus
-    -csv
-    -subprocess
-    -argparse
-    -threading
-
+Python 2.7
+Python modules:
+	PyQt4 (version: 4.11.2)
+	PyTango (version: >= 8.1.5)
+	Taurus (version: >= 3.3.0)
+	Numpy (version: >= 1.8.1)
+	CosyWidgets (version: >= 0.1)
+	MaxWidgets (version: >= 0.8.3)
+	csv, subprocess, argparse, threading, time, os, json, datetime, contextlib, base64, 
+	sys, pickle, re, math, signal, traceback, collections, copy, …
 
 
 
 Operation:
 =====================================
-
-FacilityView application is run by executing FacilityView.py.
+ControlProgram application can be run by executing ControlProgram.py
 Application accepts following arguments:
---CSV path to the CSV file (required)
---GUI path to GUI directory (required)
---TITLE title of the main window (optional)
+--CSV ${Path to CSV file} (required)
+--GCSV ${Path to Group CSV file} (optional)
+--GUI ${Path to GUI directory} (required)
+--TITLE ${Title of the main window} (optional)
+-v (optional)
 
-------------------------------------------------
-CSV file must be a file of the following format:
-------------------------------------------------
-1*(DEVICE_DESCRIPTION), "\n"
+Moreover, you can run the ControlProgram using the GUIrunner application.
+GUIrunner application automatically provides the input arguments to the ControlProgram.
+GUIrunner also serves as an update manager and ControlSystem instance manager.
 
-DEVICE_DESCRIPTION = ELEMENT_NAME, ",", TYPE, ",", L, ",", S, ",", X, ",", Y, ",", Z, ",", SECTION,
-    ",", SUBSYSTEM, ",", MANAGED_IN_CS, ",", DEVICE_SERVER_NAME, ",", DEVICE_SERVER_INSTANCE, ",",
-    DEVICE_CLASS, ",", TANGO_DEVICE_NAME, ",", TRIGGERED_BY_TTL, ",", CUSTOM_GUI, ",", AGGREGATE_GUI, ",", DESCRIPTION, ",", COMMENT
-
-AGGREGATE_GUI = AGGREGATE_SYSTEM, "-", "AGGREGATE_PART"
-AGGREGATE_SYSTEM = AGGREGATE_SYSTEM_GROUP, 1*("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
-
----------------------------------------------------
-In the GUI directory, following scripts must exist:
----------------------------------------------------
-
-For every different AGGREGATE_SYSTEM_GROUP, a file AGGREGATE_SYSTEM_GROUP.py must exist.
--When opening an aggregate-system GUI, this script is being executed. Following arguments are passed:
-    -For every device with the specified AGGREGATE_SYSTEM_GROUP, two arguments are passed:
-        1. --AGGREGATE_PART
-        2. TANGO_DEVICE_NAME
-	-Additional two arguments
-		1. --LAB
-		2. AGGREGATE_SYSTEM_GROUP
-For every device that has a custom gui (CUSTOM_GUI = SCRIPT_NAME), a file SCRIPT_NAME.py must exist.
--When opening a device GUI that has a custom gui, a SCRIPT_NAME.py will be executed. Following argument are passed:
-    1. TANGO_DEVICE_NAME
-
+For more information please refer to the provided documentation.
